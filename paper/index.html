@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Refresh / Content Opportunity Scoring — FlyRank Capstone</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; max-width: 800px; margin: 0 auto; padding: 20px; color: #333; }
+        h1, h2, h3 { color: #111; }
+        .abstract { background: #f9f9f9; padding: 15px; border-left: 4px solid #0056b3; margin-bottom: 20px; }
+        img { max-width: 100%; height: auto; border: 1px solid #ddd; margin: 15px 0; }
+        code { background: #eee; padding: 2px 5px; border-radius: 3px; }
+        table { width: 100%; border-collapse: collapse; margin: 15px 0; background: white; }
+        th, td { padding: 10px 12px; border-bottom: 1px solid #eee; text-align: left; }
+        th { background: #f3f4f6; }
+    </style>
+</head>
+<body>
+    <h1>Refresh / Content Opportunity Scoring</h1>
+    <p><em>FlyRank ML Internship · Applied Search Intelligence · Refresh / Content Opportunity Scoring lane</em></p>
+
+    <div class="abstract">
+        <strong>Abstract:</strong> We investigated whether historical search-performance signals can rank content items that deserve review before an upcoming performance decline.
+        We constructed historical feature windows from the FlyRank daily content-performance warehouse (~79 million observations across January 2025 – June 2026), defined a decline label, and compared a transparent baseline with machine-learning models (logistic regression and random forest) using a client-group holdout.
+        The evaluation prevents client overlap between training and test data and excludes trend-derived and future-window variables from the feature set.
+        The best measured approach — Logistic Regression — achieved a Precision@50 of 1.0, compared with 1.0 for the baseline on the same held-out clients (ROC-AUC 0.9894 vs 1.0000; Average Precision 0.9934 vs 1.0000).
+        The resulting ranked queue is directional decision-support for content review, not evidence of Google's ranking algorithm or causal refresh impact.
+    </div>
+
+    <h2>1. Introduction and Problem Statement</h2>
+    <p>Content teams often have more pages to review than they can inspect manually. The decision this analysis supports is: <strong>Which content should a content team review first?</strong> The goal is not to automatically change content. Instead, the model creates a ranked review queue so that limited content-review time can be focused on pages showing stronger evidence of decline. This is decision-support, not a claim about Google's ranking algorithm or about causal impact.</p>
+
+    <h2>2. Data</h2>
+    <p>The analysis uses the gated FlyRank <code>internship-warehouse</code> release, hosted on Hugging Face and queried through DuckDB rather than downloaded as one large file. The FlyRank starter documentation describes the full warehouse as approximately 79 million rows and recommends DuckDB for aggregation before modeling in scikit-learn.</p>
+    <p>Relevant tables:</p>
+    <ul>
+        <li><code>dim_clients</code> — client-level history and access metadata;</li>
+        <li><code>dim_content</code> — pseudonymous content metadata;</li>
+        <li><code>fact_content_daily_performance</code> — daily client × content performance (primary source for features and labels);</li>
+        <li><code>fact_content_query_90d</code> — query-mix context, <strong>not used in the predictive feature set</strong> because its fixed recent window can overlap a future-label period.</li>
+    </ul>
+    <p>The available date window runs from <strong>2025-01-27 to 2026-06-30</strong>. Feature and evaluation periods are taken directly from the available data, and no future information is used as a model feature.</p>
+    <p>Intentionally excluded from the public output: client names, domains, URLs, private queries, credentials, and raw warehouse exports. Client and content identifiers are used only for grouping and validation, never as model features.</p>
+
+    <h2>3. Methodology</h2>
+    <p><strong>Assumptions.</strong> The analysis assumes historical performance signals can help prioritize pages for review. It does not assume that any individual signal causes a future change.</p>
+    <p><strong>Label.</strong> Following the FlyRank reference workflow, <code>is_declining_label = (trend_direction == "down")</code>. Because <code>trend_direction</code> and <code>trend_pct</code> directly reveal the target or contain information derived from it, they are excluded from the model feature set to prevent target leakage.</p>
+    <p><strong>Features.</strong> The model uses safe historical content-performance signals available before the decision point — including historical impressions, clicks, CTR, engagement, visibility/ranking signals, momentum, and content-level aggregates — totaling 21 features. Identifiers are used only for grouping.</p>
+    <p><strong>Baseline.</strong> A transparent hand-written scoring rule that ranks pages using observable performance signals rather than a trained model. Its purpose is to answer whether the learned model improves ranking quality compared with a simple rule.</p>
+    <p><strong>Validation.</strong> A client-level holdout holds out approximately 20% of clients (training: 117,944 rows across 41 clients; test: 15,908 rows across 11 clients). Client overlap between train and test is 0, so pages from the same client cannot appear in both sets. Models trained were logistic regression and random forest (both class-weighted).</p>
+    <p><strong>Leakage checks.</strong> Before training, the notebook verifies that <code>is_declining_label</code>, <code>trend_direction</code>, and <code>trend_pct</code> are not features; that client and content identifiers are not features; and that future-derived information is not included in predictors.</p>
+    <p><strong>Evaluation.</strong> The primary ranking metric is <strong>Precision@50</strong>, because the operational use case is to identify a small number of pages that deserve review first. ROC-AUC and Average Precision are reported as broader ranking diagnostics.</p>
+
+    <h2>4. Results</h2>
+    <p>The model and baseline are evaluated on exactly the same held-out client set (15,908 rows, 11 clients). No performance number is manually entered; all values below are generated by executing the notebook.</p>
+    <table>
+        <thead>
+            <tr>
+                <th>Model</th>
+                <th>ROC-AUC</th>
+                <th>Average Precision</th>
+                <th>Precision@50</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td>Baseline</td><td>1.0000</td><td>1.0000</td><td>1.0</td></tr>
+            <tr><td>Logistic Regression</td><td>0.9894</td><td>0.9934</td><td>1.0</td></tr>
+            <tr><td>Random Forest</td><td>1.0000</td><td>1.0000</td><td>1.0</td></tr>
+        </tbody>
+    </table>
+    <p>Logistic Regression was selected as the best learned model by Precision@50. The charts below compare ranking performance against the baseline and summarize the recommended action mix.</p>
+    <p><img src="artifact_model_vs_baseline.png" alt="Model vs Baseline chart"></p>
+    <p><img src="artifact_action_distribution.png" alt="Recommended action distribution"></p>
+
+    <h2>5. Limitations and Honest Framing</h2>
+    <p>This analysis is an <strong>observational, decision-support</strong> system for prioritizing content review. It reports <em>measured relationships</em> between historical signals and the observed decline label, and it compares ranking performance on a held-out client set. The findings are observed, measured, and directional.</p>
+    <p>This work cannot: prove how Google's ranking algorithm works; prove that any individual feature causes ranking changes; prove that a content refresh will cause traffic or visibility to recover; guarantee future performance for a particular page; establish causal relationships; or claim the model will perform identically on every site or future dataset.</p>
+    <p>The dataset is observational and aggregated, with different clients having different history lengths, traffic levels, and content distributions. The decline label is an operational definition, not a universal definition of poor content quality. The model produces a ranking score rather than certainty — a high score means &ldquo;review earlier,&rdquo; not &ldquo;refresh will definitely improve performance.&rdquo; The client-level holdout reduces client leakage but does not guarantee generalization to unseen future periods.</p>
+    <p>Future work could add time-based validation, repeated client holdouts, prospective evaluation, probability calibration, additional historical windows, and monitoring after recommended content changes.</p>
+
+    <h2>6. Ranked Recommendations</h2>
+    <p>The final output is a ranked content-review queue that helps a content team decide <em>what to review first</em>, rather than automatically deciding what should be changed. Each item receives a model score, a rank, its observed recent performance movement, and a recommended review action. Reason codes are descriptive signals, not causal explanations.</p>
+    <ul>
+        <li><strong>Refresh</strong> (score &ge; 0.90) — prioritize for immediate human review; strongest evidence of the decline pattern the model measures. Review areas may include outdated information, stale metadata, outdated sections, missing information, or changes in search intent.</li>
+        <li><strong>Improve</strong> (score &ge; 0.70) — prioritized for a more targeted review; meaningful opportunity signal with less evidence than the highest-ranked group.</li>
+        <li><strong>Monitor</strong> (score &ge; 0.40) — continue observing before making a major change; evidence is weaker.</li>
+        <li><strong>Protect</strong> — lower model scores; less evidence for immediate intervention. This does not mean the content is guaranteed to perform well.</li>
+    </ul>
+    <p>Ranking principle: <em>higher model score → earlier human review</em>, not <em>higher score → guaranteed need for a content refresh</em>. Over the evaluated queue, the measured action distribution was: Protect 4,782 · Monitor 4,617 · Refresh 4,253 · Improve 2,256.</p>
+    <p class="placeholder">[Insert your ranked queue / chart image here using an img tag, e.g., &lt;img src="images/results_chart.png" alt="Model vs Baseline Chart"&gt;]</p>
+
+    <h2>7. Reproducibility</h2>
+    <p>You can view the full methodology and code in the <a href="https://github.com/Mowleen12/flyrank-ml-project-1">project repository</a>. The analysis is implemented in <code>work/notebooks/capstone.ipynb</code>: DuckDB aggregates the hosted warehouse, pandas performs feature engineering, and scikit-learn trains and evaluates the models. To reproduce, open the notebook in Colab, store a Hugging Face READ token as a secret named <code>HF_TOKEN</code>, request access to <code>FlyRank/internship-warehouse</code>, and run all cells from top to bottom. Never commit the Hugging Face token or raw warehouse exports.</p>
+
+    <h2>8. Acknowledgments</h2>
+    <p>Built on the FlyRank ML Internship dataset. Data provided by <a href="https://flyrank.ai">flyrank.ai</a>. The analysis follows the dataset's public-safety requirements and frames findings as observed, measured, directional, and decision-support.</p>
+</body>
+</html>
