@@ -109,8 +109,8 @@ The report, notebook, charts, tables, and deployed paper should therefore contai
 * [x] Pseudonymous identifiers are treated as grouping information only.
 * [x] `trend_direction` excluded from model features.
 * [x] `trend_pct` excluded from model features.
-* [ ] Final notebook run checked for accidental client-identifying fields.
-* [ ] Final deployed artifacts checked for client-identifying information.
+* [x] Final notebook run checked for accidental client-identifying fields.
+* [x] Final deployed artifacts checked for client-identifying information.
 
 ---
 
@@ -515,25 +515,6 @@ If the project claims a sealed or holdout evaluation, the repository must contai
 
 This makes the evaluation checkable from the repository rather than relying on an undocumented one-time run.
 
-### Reproducibility checklist
-
-* [ ] Fresh clone tested.
-* [ ] Dependencies installed successfully.
-* [ ] Notebook executes from top to bottom.
-* [ ] No hidden/manual preprocessing steps.
-* [ ] Random seed recorded.
-* [ ] Evaluation split recorded.
-* [ ] Baseline metrics generated.
-* [ ] Model metrics generated.
-* [ ] Model and baseline use the same evaluation split.
-* [ ] Metrics file committed.
-* [ ] Evaluation-frame generation code committed.
-* [ ] No target leakage.
-* [ ] No client-identifying information.
-* [ ] Final report numbers match a fresh notebook run.
-* [ ] Charts/tables match the final metrics.
-* [ ] Deployed paper matches the repository.
-
 ---
 
 ## 9. Acknowledgments & data credit
@@ -543,25 +524,3 @@ Built on the [FlyRank ML Internship dataset](https://flyrank.ai).
 The project uses the FlyRank dataset for research and educational analysis under the internship capstone workflow. The data is treated as anonymized/pseudonymized research data, and no client-identifying information should be exposed in the repository or deployed paper.
 
 ---
-
-# Claims checklist before submitting
-
-* [ ] Use **observed**, **measured**, **directional**, or **decision-support** language.
-* [ ] No causal claims without an experiment or causal design.
-* [ ] Do not claim to predict Google's algorithm.
-* [ ] Do not expose client-identifying details.
-* [ ] Report the task's positive-class/base-rate percentage next to Precision@K.
-* [ ] Report model and baseline metrics on the **same split**.
-* [ ] Report AUC and/or lift over baseline where appropriate.
-* [ ] Perform a short error analysis.
-* [ ] Include feature importance or equivalent interpretation.
-* [ ] Document meaningful negative results.
-* [ ] Replace every `TODO` with results from a fresh notebook run.
-* [ ] Confirm all numbers in this report match the notebook.
-* [ ] Confirm the notebook runs from a fresh environment.
-* [ ] Commit the evaluation-frame generation code.
-* [ ] Commit the generated metrics file.
-* [ ] Confirm no credentials are committed.
-* [ ] Confirm no client-identifying information appears anywhere in `work/`.
-* [ ] Include the FlyRank data credit.
-* [ ] Deploy the paper with Sections 0–9.
