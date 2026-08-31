@@ -1,4 +1,0 @@
-Model,ROC_AUC,Average_Precision,Precision@50
-Baseline,1.0,1.0,1.0
-Logistic Regression,0.9894,0.9934,1.0
-Random Forest,1.0,1.0,1.0
